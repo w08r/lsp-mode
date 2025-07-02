@@ -211,12 +211,15 @@ If `lsp-go-library-directories-include-go-modules' is non-nil
 and the environment variable GOPATH is set this function will return
 $GOPATH/pkg/mod along with the value of
 `lsp-go-library-directories'."
-  (let ((library-dirs lsp-go-library-directories))
+  (let ((library-dirs lsp-go-library-directories)
+        (go-executable (or (and (not (file-remote-p default-directory)) (executable-find "go"))
+                           (and (version<= "27.0" emacs-version)
+                                (with-no-warnings
+                                  (executable-find "go" (file-remote-p default-directory)))))))
     (when (and lsp-go-library-directories-include-go-modules
-               (or (and (not (file-remote-p default-directory)) (executable-find "go"))
-                   (and (version<= "27.0" emacs-version) (with-no-warnings (executable-find "go" (file-remote-p default-directory))))))
+               go-executable)
       (with-temp-buffer
-        (when (zerop (process-file "go" nil t nil "env" "GOPATH"))
+        (when (zerop (process-file go-executable nil t nil "env" "GOPATH"))
           (setq library-dirs
                 (append
                  library-dirs
